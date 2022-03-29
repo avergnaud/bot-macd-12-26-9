@@ -7,12 +7,16 @@ import os
 def append_macd_values(data):
     multiplier12 = 2.0 / (12 + 1)
     multiplier26 = 2.0 / (26 + 1)
+    multiplier9 = 2.0 / (29 + 1)
     data[0].update({ 'ema12': data[0]['close'] })
     data[0].update({ 'ema26': data[0]['close'] })
+    data[0].update({ 'macd': data[0]['ema12'] - data[0]['ema26'] })
+    data[0].update({ 'new_signal': data[0]['macd'] })
     for i in range(1, len(data)):
         data[i].update({ 'ema12': data[i-1]['ema12'] * (1-multiplier12) + data[i]['close'] * multiplier12 })
         data[i].update({ 'ema26': data[i-1]['ema26'] * (1-multiplier26) + data[i]['close'] * multiplier26 })
         data[i].update({ 'macd': data[i]['ema12'] - data[i]['ema26'] })
+        data[i].update({ 'new_signal': data[i-1]['new_signal'] * (1-multiplier9) + data[i]['macd'] * multiplier9 })
         if i < 9:
             # on ne peut pas calculer le signal
             continue
@@ -62,7 +66,7 @@ def hello_pubsub(event, context):
                                         start_time=round(time.time() - resolution * limit),
                                         end_time=round(time.time()))
     append_macd_values(data)
-    row = data[-1]
+    row = data[-2]
     balance_coin = get_balance(symbol_coin)
     balance_stablecoin = get_balance(symbol_stablecoin)
     print(f"{symbol_coin}={balance_coin}, {symbol_stablecoin}={balance_stablecoin}, macd={row['macd']}, signal={row['signal']}, close={row['close']}")
